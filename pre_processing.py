@@ -63,9 +63,9 @@ class Decode(object):
         return stream
 
     @staticmethod
-    def generate_midi(generated_vocab, filename, output_folder):
+    def generate_midi(generated_vocab, filename):
         midi_stream = Decode().translate_to_midi(generated_vocab, sampling_frequency, note_offset)
-        midi_stream.write('midi', "/Users/vasan/data/yolo/yolo.mid")
+        midi_stream.write('midi', filename)
 
 
 class Encode(object):
