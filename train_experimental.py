@@ -82,12 +82,10 @@ def train_network(model_name, batch_size=64, epochs=100, num_units=64, sequence_
 
 
 
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, mode='min')
+    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, save_weights_only=True, mode='min')
 
 
     callbacks_list = [checkpoint]
-    print(test_in.shape)
-    print(test_out.shape)
     model.fit(network_input, network_output, epochs=epochs, batch_size=batch_size, callbacks=callbacks_list, validation_data=(test_in, test_out))
 
 
@@ -132,7 +130,7 @@ def get_data(sequence_length):
 
 working_dir = Path.cwd()
 data_dir = working_dir / "data/processed_data_experimental"
-test_dir = working_dir / "data/processed_test_data"
+test_dir = working_dir / "data/test_data"
 metadata_dir = data_dir / "metadata"
 model_dir = working_dir / "models"
 
@@ -141,11 +139,11 @@ def main():
     """Main method to train selected network"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", dest="model", help="Model to train",
-                        choices=["lstm", "bi-lstm", "lstm-attention", "bi-lstm-attention"], required=True)
+                        choices=["lstm", "bi-lstm", "lstm-attention"], required=True)
     # parser.add_argument("--processing", dest="pre_processing_method", help="Which pre processing method to use",
     #                    choices=["old", "new"], default="new")
     args = parser.parse_args()
-    train_network(args.model, batch_size=64, epochs=100, num_units=64, sequence_length=100)
+    train_network(args.model, batch_size=64, epochs=100, num_units=256, sequence_length=100)
 
 
 if __name__ == "__main__":

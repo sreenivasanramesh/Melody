@@ -27,8 +27,6 @@ def generate(model_name, test_file=None):
     sequence_length = 50
 
 
-
-
     if model_name == "lstm":
         model = SingleLSTM(32, vocab_size).get_network(sequence_length=sequence_length)
     elif model_name == "bi-lstm":
@@ -55,9 +53,13 @@ def generate_notes(model, network_input, note_to_int, int_to_note, sequence_leng
 
     pattern = list()
     prediction_output = list()
+
     if not test_file:
-        start_seq = numpy.random.randint(0, len(network_input) - 1)
-        pattern = network_input[start_seq]
+        start_pos = numpy.random.randint(0, len(network_input) - sequence_length - 1)
+        network_input = network_input[start_pos: start_pos+sequence_length]
+        for i in range(len(network_input)):
+            pattern.append(note_to_int[i])
+            #prediction_output.append(i)
     else:
         inp_pattern = ""
         with open(str(test_file), 'r') as f:
@@ -68,7 +70,7 @@ def generate_notes(model, network_input, note_to_int, int_to_note, sequence_leng
 
         inp_pattern = inp_pattern[0:sequence_length]  # TODO: 100 is sequence length, change to variable
         prediction_output = prediction_output + inp_pattern
-        print(inp_pattern)
+        #print(inp_pattern)
         for i in range(len(inp_pattern)):
             key = inp_pattern[i]
             inp_pattern[i] = note_to_int[key]
@@ -186,7 +188,7 @@ def main():
 
 working_dir = Path.cwd()
 data_dir = working_dir / "data/processed_data_experimental"
-test_dir = working_dir / "data/processed_test_data"
+test_dir = working_dir / "data/test_data"
 metadata_dir = data_dir / "metadata"
 model_dir = working_dir / "models"
 out_dir = working_dir / "samples"
