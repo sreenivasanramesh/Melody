@@ -166,9 +166,6 @@ def create_midi(prediction_output, filename):
     midi_stream.write('midi', filename)
 
 
-
-
-
 def play_music(music_file):
     """
     stream music with mixer.music module in blocking manner
