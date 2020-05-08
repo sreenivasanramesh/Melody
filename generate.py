@@ -1,50 +1,16 @@
 import argparse
 import pygame
-import pickle
 import tensorflow as tf
-from pre_processing_experimental import Decode
-import numpy
 from pathlib import Path
 from models import *
 from utils import read_binary_file
 import random
 from tensorflow.compat.v1.distributions import Multinomial
-
-
-import pickle
 import numpy
-from music21 import instrument, note, stream, chord,converter
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.layers import Activation
-import tensorflow.keras.utils as np_utils
-from tensorflow.keras.layers import Bidirectional
-from tensorflow.keras.callbacks import ModelCheckpoint
+from music21 import instrument, note, stream, chord, converter
 
 
-
-def generate():
-    """ Generate a piano midi file """
-    #load the notes used to train the model
-    with open('/home/tanush/Desktop/APM Project/Repo/MuseGen_1/data/notes/notes', 'rb') as filepath:
-        notes = pickle.load(filepath)
-
-    # Get all pitch names
-    pitchnames = sorted(set(item for item in notes))
-    # Get all pitch names
-    n_vocab = len(set(notes))
-
-    network_input, normalized_input = prepare_sequences(notes, pitchnames, n_vocab)
-    model = create_network(normalized_input, n_vocab)
-    prediction_output = generate_notes(model, network_input, pitchnames, n_vocab)
-    create_midi(prediction_output)
-
-
-
-
-def generate(model_name, test_file=None):
+def generate(model_name, weights_file, test_file=None, num_units=None):
     int_to_note = read_binary_file(metadata_dir/'int_to_note.pkl')
     note_to_int = read_binary_file(metadata_dir/'note_to_int.pkl')
     notes = read_binary_file(data_dir / "notes.pkl")
@@ -53,25 +19,27 @@ def generate(model_name, test_file=None):
     # we have currently hard-coded these values as we ran different networks on different num_units
     # as we wanted to play around with num_units and see how the outputs change
     # we did not have enough resources to run them all on the same value for num_units
-    num_units = 128
+    if not num_units:
+        num_units = 128
     sequence_length = 100
 
     if model_name == "lstm":
-        model = SingleLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length)
+        model = SingleLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length, test=True)
     elif model_name == "bi-lstm":
-        model = BiLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length)
+        model = BiLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length, test=True)
     elif model_name == "lstm-attention":
-        model = AttentionLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length)
+        model = AttentionLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length, test=True)
     elif model_name == "bi-lstm-attention":
-        model = AttentionBiLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length)
+        model = AttentionBiLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length, test=True)
 
-    filename = model_name + "/weights.hdf5"  # type(model).__name__ + "/weights.hdf5"
-    filename = model_dir / filename
-    model.load_weights(str(filename))
+    # weights_file = model_name + "/model-50-1.1735.hdf5"  # type(model).__name__ + "/weights.hdf5"
+    # weights_file = model_dir / filename
+    print(weights_file, num_units)
+    model.load_weights(str(weights_file))
     prediction_output = generate_notes(model, sequence_length=sequence_length, test_file=test_file)
     print("Generated output, translating to midi...")
 
-    filename = str(out_dir / "output.mid")
+    filename = str(out_dir / "{}output.mid".format(model_name))
     create_midi(prediction_output, filename)
     play_midi(filename)
 
@@ -94,12 +62,12 @@ def generate_notes(model, sequence_length, test_file=None):
         notes = notes[start_pos: start_pos+sequence_length]
         for i in notes:
             pattern.append(note_to_int[i])
-            prediction_output.append(i)
+            #prediction_output.append(i)
     else:
         notes = read_binary_file(data_dir/test_file)[:sequence_length]
         for i in notes:
             pattern.append(note_to_int[i])
-            prediction_output.append(i)    
+            #prediction_output.append(i)    
 
     # generate 1000 notes
     print("\n\nSimulating the network...\n\n")
@@ -166,6 +134,9 @@ def create_midi(prediction_output, filename):
     midi_stream.write('midi', filename)
 
 
+
+
+
 def play_music(music_file):
     """
     stream music with mixer.music module in blocking manner
@@ -204,11 +175,23 @@ def main():
     """Main method to train selected network"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", dest="model", help="Model to train",
-                        choices=["lstm", "bi-lstm", "lstm-attention", "bi-lstm-attention"], required=True)
+                        choices=["lstm", "bi-lstm", "lstm-attention"], required=True)
     # parser.add_argument("--processing", dest="pre_processing_method", help="Which pre processing method to use",
     #                    choices=["old", "new"], default="new")
+    parser.add_argument("--weights", dest="weights", help="Give hdf5 file on which the model was trained on",
+                        required=True)
+    parser.add_argument("--units", dest="units", help="Num of LSTM units which was used to train the weights for given HDF5 file",
+                        required=True)
+    parser.add_argument("--test", dest="test_file", help="Give the processed file name for which you want to test the song on\
+                        A random input is chosen if the file is not provided.")
     args = parser.parse_args()
-    generate(args.model, str(test_dir / "test_elise_format0.pkl"))  # , None)
+
+    test_file = None
+    weights_file = None
+    if args.test_file:
+        test_file = str(test_dir / args.test_file)
+    weights_file = str(model_dir / args.model / args.weights)
+    generate(args.model, weights_file, test_file, int(args.units))
 
 
 working_dir = Path.cwd()

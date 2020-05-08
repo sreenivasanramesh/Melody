@@ -7,6 +7,7 @@ import tensorflow.keras.utils as np_utils
 from tensorflow.keras.callbacks import ModelCheckpoint
 
 
+
 def read_metadata(metadata_file):
     """reads pickle to get back dictionary of vocab -> embeddings used during training"""
     with open(str(metadata_file), 'rb') as bin_file:
@@ -14,16 +15,16 @@ def read_metadata(metadata_file):
         return obj
 
 
-def prepare_validation_song(file_name, sequence_length):
-    # notes = None
+def prepare_validation_song(file, sequence_length):
+    notes = None
     sequence_in = list()
     sequence_out = list()
     note_to_int = read_metadata(metadata_dir / 'note_to_int.pkl')
     print(note_to_int)
-    # int_to_note = read_metadata(metadata_dir / 'int_to_note.pkl')
+    int_to_note = read_metadata(metadata_dir / 'int_to_note.pkl')
     print(len(note_to_int))
 
-    with open(file_name) as f:
+    with open(file) as f:
         notes = f.read().rstrip().split(' ')
         for i in range(0, len(notes) - sequence_length, 1):
             sequence_in.append(notes[i:i + sequence_length])
@@ -38,9 +39,14 @@ def prepare_validation_song(file_name, sequence_length):
     sequence_in = np.reshape(sequence_in, (len(sequence_in), len(sequence_in[0]), 1))
     sequence_in = sequence_in / float(len(note_to_int))
     sequence_out = np_utils.to_categorical(sequence_out, num_classes = len(note_to_int))
-    # print(len(sequence_in))
-    # print(len(sequence_out))
+
+    #print(len(sequence_in))
+    #print(len(sequence_out))
     return sequence_in,sequence_out
+
+
+
+
 
 
 def train_network(model_name, batch_size=64, epochs=100, num_units=64, sequence_length=100):
@@ -54,7 +60,13 @@ def train_network(model_name, batch_size=64, epochs=100, num_units=64, sequence_
     # as we wanted to play around with num_units and see how the outputs change
     # we did not have enough resources to run them all on the same value for num_units
 
+
+
+
     test_in, test_out =  prepare_validation_song(str(test_dir / "sonat-9.txt"), sequence_length)
+
+
+
 
     if model_name == "lstm":
         model = SingleLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length)
@@ -66,14 +78,15 @@ def train_network(model_name, batch_size=64, epochs=100, num_units=64, sequence_
         model = AttentionBiLSTM(num_units, vocab_size).get_network(sequence_length=sequence_length)
 
     filename = model_name + "/model-{epoch:02d}-{loss:.4f}.hdf5"  # type(model).__name__ + 
-    file_path = str(model_dir / filename)
+    filepath = str(model_dir / filename)
 
-    checkpoint = ModelCheckpoint(file_path, monitor='loss', verbose=0,
-                                 save_best_only=True, save_weights_only=True, mode='min')
+
+
+    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, save_weights_only=True, mode='min')
+
 
     callbacks_list = [checkpoint]
-    model.fit(network_input, network_output, epochs=epochs, batch_size=batch_size,
-              callbacks=callbacks_list, validation_data=(test_in, test_out))
+    model.fit(network_input, network_output, epochs=epochs, batch_size=batch_size, callbacks=callbacks_list, validation_data=(test_in, test_out))
 
 
 def get_data(sequence_length):

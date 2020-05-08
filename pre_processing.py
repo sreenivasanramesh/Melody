@@ -47,8 +47,7 @@ def main():
         #   pickle.dump(translated_score, file_path)
         notes.extend(translated_score)
 
-    with open(str(result_dir / "notes.pkl"),
-              'wb') as file_path:
+    with open(str(result_dir / "notes.pkl"), 'wb') as file_path:
         pickle.dump(notes, file_path)
    
 

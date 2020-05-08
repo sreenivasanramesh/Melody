@@ -24,14 +24,17 @@ class SingleLSTM(object):
         self.num_units = num_units
         self.out_classes = out_classes
 
-    def get_network(self, sequence_length=100, features=1):
+    def get_network(self, sequence_length=100, features=1, test=False):
         """Return the model"""
         model = Sequential()
         model.add(LSTM(units=self.num_units,
                        input_shape=(sequence_length, features)))
 
         model.add(Dense(self.out_classes))
-        model.add(Activation('softmax'))
+        if not test:
+            model.add(Activation('softmax'))
+        if test:
+            model.add(Activation('sigmoid'))
         model.compile(loss='categorical_crossentropy', optimizer='Nadam', metrics=[keras_perplexity, 'accuracy'])
         return model
 
@@ -45,13 +48,16 @@ class BiLSTM(object):
         self.num_units = num_units
         self.out_classes = out_classes
 
-    def get_network(self, sequence_length=100, features=1):
+    def get_network(self, sequence_length=100, features=1, test=False):
         """Return the model"""
         model = Sequential()
         model.add(Bidirectional(LSTM(self.num_units),
                                 input_shape=(sequence_length, features)))
         model.add(Dense(self.out_classes))
-        model.add(Activation('softmax'))
+        if not test:
+            model.add(Activation('softmax'))
+        if test:
+            model.add(Activation('sigmoid'))
         model.compile(loss='categorical_crossentropy', optimizer='Nadam', metrics=[keras_perplexity, 'accuracy'])
         return model
 
@@ -93,14 +99,17 @@ class AttentionLSTM(object):
         self.num_units = num_units
         self.out_classes = out_classes
 
-    def get_network(self, sequence_length=100, features=1):
+    def get_network(self, sequence_length=100, features=1, test=False):
         """Return the model"""
         input_shape = Input(shape=(sequence_length, features), batch_size=64)
         (lstm, forward_h, forward_c) = LSTM(self.num_units, return_sequences=True, return_state=True)(input_shape)
         context_vector, attention_weights = Attention(10)(lstm, forward_h)
         dense = Dense(self.out_classes)(context_vector)
-        softmax = Activation('softmax')(dense)
-        model = Model(inputs=input_shape, outputs=softmax)
+        if not test:
+            output = Activation('softmax')(dense)
+        if test:
+            output = Activation('sigmoid')(dense)
+        model = Model(inputs=input_shape, outputs=output)
         model.compile(loss='categorical_crossentropy', optimizer='Nadam', metrics=[keras_perplexity, 'accuracy'])
         print(model)
         return model
