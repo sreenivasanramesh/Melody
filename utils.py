@@ -3,6 +3,7 @@ Contains functions used by others
 """
 import pickle
 import pygame
+from pathlib import Path
 
 
 def read_binary_file(file_name):
@@ -41,5 +42,15 @@ def play_midi(music_file):
         pygame.mixer.music.stop()
         raise SystemExit
 
+
+def get_paths():
+    """ returns a dictionary of directory paths """
+    paths = dict()
+    paths["working_dir"] = Path.cwd()
+    paths["data_dir"] = paths["working_dir"] / "data/train_data"
+    paths["test_dir"] = paths["working_dir"] / "data/test_data"
+    paths["metadata_dir"] = paths["data_dir"] / "metadata"
+    paths["model_dir"] = paths["working_dir"] / "models"
+    return paths
 
 

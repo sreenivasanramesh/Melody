@@ -5,14 +5,10 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 
 
-
-
 def keras_perplexity(y_true, y_pred):
     cross_entropy = K.mean(tf.keras.losses.categorical_crossentropy(y_true, y_pred))
     perplexity = K.exp(cross_entropy)
     return perplexity
-
-
 
 
 class SingleLSTM(object):

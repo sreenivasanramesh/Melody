@@ -39,14 +39,7 @@ def prepare_validation_song(file, sequence_length):
     sequence_in = np.reshape(sequence_in, (len(sequence_in), len(sequence_in[0]), 1))
     sequence_in = sequence_in / float(len(note_to_int))
     sequence_out = np_utils.to_categorical(sequence_out, num_classes = len(note_to_int))
-
-    #print(len(sequence_in))
-    #print(len(sequence_out))
     return sequence_in,sequence_out
-
-
-
-
 
 
 def train_network(model_name, batch_size=64, epochs=100, num_units=64, sequence_length=100):
@@ -55,12 +48,6 @@ def train_network(model_name, batch_size=64, epochs=100, num_units=64, sequence_
     network_input = np.reshape(network_input, (len(network_input), len(network_input[0]), 1))
     network_input = network_input / float(vocab_size)
     network_output = np_utils.to_categorical(network_output)
-
-    # we have currently hard-coded these values as we ran different networks on different num_units
-    # as we wanted to play around with num_units and see how the outputs change
-    # we did not have enough resources to run them all on the same value for num_units
-
-
 
 
     test_in, test_out =  prepare_validation_song(str(test_dir / "sonat-9.txt"), sequence_length)
