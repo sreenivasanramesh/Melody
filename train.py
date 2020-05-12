@@ -45,7 +45,6 @@ def get_train_data(sequence_length=100):
     pitch_names = sorted(set(item for item in notes))
     # Embedding #TODO use keras Embedding layer instead
     note_to_int = read_binary_file(metadata_dir / 'note_to_int.pkl')
-    int_to_note = read_binary_file(metadata_dir / 'int_to_note.pkl')
     vocab_size = len(set(note_to_int))
 
     # create input sequences and the corresponding outputs
@@ -66,11 +65,6 @@ def get_train_data(sequence_length=100):
         pickle.dump(network_input, f)
     with open(metadata_dir / 'sequence_out.pkl', 'wb') as f:
         pickle.dump(network_output, f)
-    # moved note to int and int to note to pre_precessing step
-    # with open(metadata_dir / 'note_to_int.pkl', 'wb') as f:
-    #    pickle.dump(note_to_int, f)
-    # with open(metadata_dir / 'int_to_note.pkl', 'wb') as f:
-    #    pickle.dump(int_to_note, f)
     return network_input, network_output, vocab_size
 
 
@@ -98,8 +92,10 @@ def train_network(model_name, batch_size=64, epochs=100, num_units=64, sequence_
 
     filename = model_name + "/model-{epoch:02d}-{loss:.4f}.hdf5"  # type(model).__name__ +
     file_path = str(model_dir / filename)
-    checkpoint = ModelCheckpoint(file_path, monitor='loss', verbose=0, save_best_only=True, save_weights_only=True, mode='min')
-    model.fit(network_input, network_output, epochs=epochs, batch_size=batch_size, callbacks=[checkpoint], validation_data=(test_in, test_out))
+    checkpoint = ModelCheckpoint(file_path, monitor='loss', verbose=0,
+                                 save_best_only=True, save_weights_only=True, mode='min')
+    model.fit(network_input, network_output, epochs=epochs,
+              batch_size=batch_size, callbacks=[checkpoint], validation_data=(test_in, test_out))
 
 
 working_dir = Path.cwd()
@@ -114,11 +110,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", dest="model", help="Model to train",
                         choices=["lstm", "bi-lstm", "lstm-attention", "bi-lstm-attention"], required=True)
-    # parser.add_argument("--processing", dest="pre_processing_method", help="Which pre processing method to use",
-    #                    choices=["old", "new"], default="new")
+    parser.add_argument("--units", dest="units",
+                        help="Num of LSTM units", default=256, type=int)
+    parser.add_argument("--epochs", dest="epochs",
+                        help="Num of epochs to train for", default=100, type=int)
+    parser.add_argument("--sequence-length", dest="sequence_length",
+                        help="Sequence length", default=100, type=int)
     args = parser.parse_args()
-    train_network(args.model, batch_size=64, epochs=50, num_units=256, sequence_length=100)
-
+    train_network(args.model, batch_size=64, epochs=args.epochs, num_units=args.units,
+                  sequence_length=args.sequence_length)
 
 
 if __name__ == "__main__":
