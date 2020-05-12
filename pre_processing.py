@@ -1,6 +1,8 @@
 from pathlib import Path
 import pickle
 from music21 import converter, instrument, note, chord, stream
+from utils import get_paths
+import random
 
 
 def convert_notes_to_midi(prediction_output, filename):
@@ -63,47 +65,76 @@ def convert_midi_to_notes(midi_file):
     return notes
 
 
-def main():
-    working_dir = Path.cwd()
-    data_dir = working_dir/"data"
-    result_dir = data_dir/"processed_data"
-    test_dir = data_dir / "test_data"
-    metadata_dir = result_dir / "metadata"
-
-    # a list containing all the notes fromm all songs concatenated together
+def create_dataset(midi_files, dest_folder):
+    """
+    Processes the given midi files to a sequence of notes and pickles these files.
+    A list of notes are returned to create a bigger vocabulary of all notes
+    """
     notes = list()
-    for file1 in data_dir.glob("*.mid"):
+    for file1 in midi_files:
         print("Processing File ", file1)
+        translated_score = list()
         try:
             translated_score = convert_midi_to_notes(str(file1))
         except:
             print("Skippping {} as it is corrupted".format(file1))
             continue
-        translated_score = convert_midi_to_notes(str(file1))
-        # used for generating files for testing
-        # with open(str(test_dir / "{}.pkl".format(str(file1.stem))), 'wb') as file_path:
-        #   pickle.dump(translated_score, file_path)
         notes.extend(translated_score)
+        with open(str(dest_folder / "{}.pkl".format(str(file1.stem))), 'wb') as file_path:
+            pickle.dump(translated_score, file_path)
 
-    with open(str(result_dir / "notes.pkl"), 'wb') as file_path:
-        pickle.dump(notes, file_path)
+    return notes
 
 
 
-    """
-    # TODO: fix this mess later by using embedding layer
-    # create vocab here itself since doing so later might give errors while playing test data
-    pitch_names = sorted(set(item for item in notes))
+
+def main():
+    paths = get_paths()
+    music_files = list(paths['data_dir'].glob("*.mid"))
+
+    # randomly select 10% test, 90%train
+    # 10% train is enough in this case as these few files itself will have over 10k sequences
+    # 10% train is enough in this case as these few files itself will have over 10k sequences
+    random.shuffle(music_files)
+    test_count = len(music_files) // 10
+    # train_count = len(music_files) - test_count
+    test_files = music_files[:test_count]
+    train_files = music_files[test_count:]
+
+    # create a vocab of all possible notes
+    # this is the main drawback of this pre-processing approach
+    # we don't know what to do when we get unseen data, how to encode?
+    notes = set()
+
+    # TODO: delete directory and create directory structure before generating files
+
+    # create train directory
+    print("Generating processed train data:\n")
+    train_notes = create_dataset(train_files, dest_folder=paths["train_dir"])
+    # for train we'll have a single file with all the data concatenated
+    with open(str(paths["train_dir"] / "notes.pkl"), 'wb') as file_path:
+        pickle.dump(train_notes, file_path)
+    notes |= set(train_notes)
+    print("Generated train data\n\n\n")
+
+    # create test directory
+    print("Generating processed test data:\n")
+    test_notes = create_dataset(test_files, dest_folder=paths["test_dir"])
+    notes |= set(test_notes)
+    print("Generated test data\n\n\n")
+
+    # TODO: fix this mess later
+    # create vocab here itself since doing so later might give problems while playing test data
+    pitch_names = sorted(notes)
     # create a dictionary to map pitches to integers
     note_to_int = dict((note, number) for number, note in enumerate(pitch_names))
     int_to_note = dict((number, note) for number, note in enumerate(pitch_names))
-    with open(metadata_dir / 'note_to_int.pkl', 'wb') as f:
+    with open(paths["metadata_dir"] / 'note_to_int.pkl', 'wb') as f:
         pickle.dump(note_to_int, f)
-    with open(metadata_dir / 'int_to_note.pkl', 'wb') as f:
+    with open(paths["metadata_dir"] / 'int_to_note.pkl', 'wb') as f:
         pickle.dump(int_to_note, f)
-    """
 
-    print("Finished Pre-processing")
+    print("\nFinished Pre-processing.\n\n\n")
 
 
 if __name__ == "__main__":

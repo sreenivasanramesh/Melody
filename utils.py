@@ -47,9 +47,10 @@ def get_paths():
     """ returns a dictionary of directory paths """
     paths = dict()
     paths["working_dir"] = Path.cwd()
-    paths["data_dir"] = paths["working_dir"] / "data/train_data"
-    paths["test_dir"] = paths["working_dir"] / "data/test_data"
-    paths["metadata_dir"] = paths["data_dir"] / "metadata"
+    paths["data_dir"] = paths["working_dir"] / "data"
+    paths["train_dir"] = paths["data_dir"] / "train_data"
+    paths["test_dir"] = paths["data_dir"] / "test_data"
+    paths["metadata_dir"] = paths["train_dir"] / "metadata"
     paths["model_dir"] = paths["working_dir"] / "models"
     return paths
 
