@@ -1,5 +1,14 @@
 from tensorflow.keras import Input, Model, Sequential
-from tensorflow.keras.layers import Activation, Attention, Bidirectional, Concatenate, Dense, LSTM, Conv1D
+from tensorflow.keras.layers import (
+    Activation,
+    Attention,
+    Bidirectional,
+    Concatenate,
+    Dense,
+    LSTM,
+    Conv1D,
+)
+
 # from tensorflow.keras.layers import Dropout
 import tensorflow as tf
 import tensorflow.keras.backend as K
@@ -23,15 +32,18 @@ class SingleLSTM(object):
     def get_network(self, sequence_length=100, features=1, test=False):
         """Return the model"""
         model = Sequential()
-        model.add(LSTM(units=self.num_units,
-                       input_shape=(sequence_length, features)))
+        model.add(LSTM(units=self.num_units, input_shape=(sequence_length, features)))
 
         model.add(Dense(self.out_classes))
         if not test:
-            model.add(Activation('softmax'))
+            model.add(Activation("softmax"))
         if test:
-            model.add(Activation('sigmoid'))
-        model.compile(loss='categorical_crossentropy', optimizer='Nadam', metrics=[keras_perplexity, 'accuracy'])
+            model.add(Activation("sigmoid"))
+        model.compile(
+            loss="categorical_crossentropy",
+            optimizer="Nadam",
+            metrics=[keras_perplexity, "accuracy"],
+        )
         return model
 
 
@@ -47,14 +59,19 @@ class BiLSTM(object):
     def get_network(self, sequence_length=100, features=1, test=False):
         """Return the model"""
         model = Sequential()
-        model.add(Bidirectional(LSTM(self.num_units),
-                                input_shape=(sequence_length, features)))
+        model.add(
+            Bidirectional(LSTM(self.num_units), input_shape=(sequence_length, features))
+        )
         model.add(Dense(self.out_classes))
         if not test:
-            model.add(Activation('softmax'))
+            model.add(Activation("softmax"))
         if test:
-            model.add(Activation('sigmoid'))
-        model.compile(loss='categorical_crossentropy', optimizer='Nadam', metrics=[keras_perplexity, 'accuracy'])
+            model.add(Activation("sigmoid"))
+        model.compile(
+            loss="categorical_crossentropy",
+            optimizer="Nadam",
+            metrics=[keras_perplexity, "accuracy"],
+        )
         return model
 
 
@@ -70,15 +87,14 @@ class Attention(tf.keras.Model):
         # hidden_with_time_axis shape == (batch_size, 1, hidden size)
         # we are doing this to perform addition to calculate the score
         hidden_with_time_axis = tf.expand_dims(hidden, 1)
-          
+
         # score shape == (batch_size, max_length, 1)
         # we get 1 at the last axis because we are applying score to self.V
         # the shape of the tensor before applying self.V is (batch_size, max_length, units)
-        score = tf.nn.tanh(
-            self.W1(features) + self.W2(hidden_with_time_axis))
+        score = tf.nn.tanh(self.W1(features) + self.W2(hidden_with_time_axis))
         # attention_weights shape == (batch_size, max_length, 1)
         attention_weights = tf.nn.softmax(self.V(score), axis=1)
-          
+
         # context_vector shape after sum == (batch_size, hidden_size)
         context_vector = attention_weights * features
         context_vector = tf.reduce_sum(context_vector, axis=1)
@@ -98,18 +114,23 @@ class AttentionLSTM(object):
     def get_network(self, sequence_length=100, features=1, test=False):
         """Return the model"""
         input_shape = Input(shape=(sequence_length, features), batch_size=64)
-        (lstm, forward_h, forward_c) = LSTM(self.num_units, return_sequences=True, return_state=True)(input_shape)
+        (lstm, forward_h, forward_c) = LSTM(
+            self.num_units, return_sequences=True, return_state=True
+        )(input_shape)
         context_vector, attention_weights = Attention(10)(lstm, forward_h)
         dense = Dense(self.out_classes)(context_vector)
         if not test:
-            output = Activation('softmax')(dense)
+            output = Activation("softmax")(dense)
         if test:
-            output = Activation('sigmoid')(dense)
+            output = Activation("sigmoid")(dense)
         model = Model(inputs=input_shape, outputs=output)
-        model.compile(loss='categorical_crossentropy', optimizer='Nadam', metrics=[keras_perplexity, 'accuracy'])
+        model.compile(
+            loss="categorical_crossentropy",
+            optimizer="Nadam",
+            metrics=[keras_perplexity, "accuracy"],
+        )
         print(model)
         return model
-
 
 
 '''

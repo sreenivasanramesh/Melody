@@ -1,4 +1,3 @@
-#import os
 import music21
 import numpy as np
 from math import floor
@@ -42,7 +41,9 @@ class Decode(object):
                         break
                     if score[i + j].startswith("wait"):
                         duration += int(score[i + j][4:])
-                    if (score[i + j][:3 + note_string_len] == "end" + score[i]) or (score[i + j][:note_string_len] == score[i]):
+                    if (score[i + j][: 3 + note_string_len] == "end" + score[i]) or (
+                        score[i + j][:note_string_len] == score[i]
+                    ):
                         has_end = True
                         break
 
@@ -64,8 +65,10 @@ class Decode(object):
 
     @staticmethod
     def generate_midi(generated_vocab, filename):
-        midi_stream = Decode().translate_to_midi(generated_vocab, sampling_frequency, note_offset)
-        midi_stream.write('midi', filename)
+        midi_stream = Decode().translate_to_midi(
+            generated_vocab, sampling_frequency, note_offset
+        )
+        midi_stream.write("midi", filename)
 
 
 class Encode(object):
@@ -83,12 +86,16 @@ class Encode(object):
         """
         # length of notes with sampling
         song_length = floor(stream.duration.quarterLength * sampling_frequency) + 1
-        score_arr = np.zeros((song_length, note_range))  # [ [[key=1 if press, 2 if hold else 0]]   [[]]  [[]]  ....]
+        score_arr = np.zeros(
+            (song_length, note_range)
+        )  # [ [[key=1 if press, 2 if hold else 0]]   [[]]  [[]]  ....]
 
-        notes = list()  # will be a list of lists [ [note, timestamp, duration of note] ... ]
+        notes = (
+            list()
+        )  # will be a list of lists [ [note, timestamp, duration of note] ... ]
 
-        note_filter = music21.stream.filters.ClassFilter('Note')
-        chord_filter = music21.stream.filters.ClassFilter('Chord')
+        note_filter = music21.stream.filters.ClassFilter("Note")
+        chord_filter = music21.stream.filters.ClassFilter("Chord")
 
         for note in stream.recurse().addFilter(note_filter):
             #  pitch.midi - piano key no  , note_offset - since we are restricting to 62 keys
@@ -96,14 +103,24 @@ class Encode(object):
             #  n.offset * sampling_frequency = position on music sheet
             #  n.duration.quarterLength = "musical seconds" note is played
             #  multiplying quarter length by sampling frequency gives us the length the note should be played
-            notes.append((note.pitch.midi - note_offset, floor(note.offset * sampling_frequency),
-                          floor(note.duration.quarterLength * sampling_frequency)))
+            notes.append(
+                (
+                    note.pitch.midi - note_offset,
+                    floor(note.offset * sampling_frequency),
+                    floor(note.duration.quarterLength * sampling_frequency),
+                )
+            )
 
         for chord in stream.recurse().addFilter(chord_filter):
             #  chord.pitches - notes in a chord
             for note in chord.pitches:
-                notes.append((note.midi - note_offset, floor(chord.offset * sampling_frequency),
-                              floor(chord.duration.quarterLength * sampling_frequency)))
+                notes.append(
+                    (
+                        note.midi - note_offset,
+                        floor(chord.offset * sampling_frequency),
+                        floor(chord.duration.quarterLength * sampling_frequency),
+                    )
+                )
 
         for note in notes:
             key = note[0]
@@ -114,7 +131,7 @@ class Encode(object):
                 key -= 12
 
             score_arr[note[1], key] = 1  # Strike note
-            score_arr[note[1]+1: note[1]+note[2], key] = 2  # Continue holding note
+            score_arr[note[1] + 1 : note[1] + note[2], key] = 2  # Continue holding note
 
         score_string = list()
         # converts array of keys pressed/held to string and puts p before
@@ -122,7 +139,7 @@ class Encode(object):
         # 'p00000000000000000000000000000000000000000000002000000000000000', ...]
 
         for time_step in score_arr:
-            score_string.append(''.join(str(int(x)) for x in time_step))
+            score_string.append("".join(str(int(x)) for x in time_step))
 
         return score_string
 
@@ -136,8 +153,8 @@ class Encode(object):
         augmented_data = list()
         for i in range(0, 6):
             for chord in score_string_arr:
-                padded = '000' + chord + '000'
-                augmented_data.append(padded[i: i+note_range])
+                padded = "000" + chord + "000"
+                augmented_data.append(padded[i : i + note_range])
         return augmented_data
 
     @staticmethod
@@ -179,10 +196,14 @@ class Encode(object):
         # merge multiple waits
         while i < len(processed_score):
             wait_count = 1
-            if processed_score[i] == 'wait':
-                while wait_count <= sampling_frequency * 2 and i + wait_count < len(processed_score) and processed_score[i + wait_count] == 'wait':
+            if processed_score[i] == "wait":
+                while (
+                    wait_count <= sampling_frequency * 2
+                    and i + wait_count < len(processed_score)
+                    and processed_score[i + wait_count] == "wait"
+                ):
                     wait_count += 1
-                processed_score[i] = 'wait' + str(wait_count)
+                processed_score[i] = "wait" + str(wait_count)
             translated_score += processed_score[i] + " "
             i += wait_count
         return translated_score
@@ -190,8 +211,8 @@ class Encode(object):
 
 def main():
     working_dir = Path.cwd()
-    data_dir = working_dir/"data"
-    result_dir = data_dir/"processed_data_experimental"
+    data_dir = working_dir / "data"
+    result_dir = data_dir / "processed_data_experimental"
 
     for file1 in data_dir.glob("*.mid"):
 
@@ -212,7 +233,7 @@ def main():
         processed_score = Encode().get_key_sequence(score_keys)
 
         file_name = file1.stem + ".txt"
-        result_file = result_dir/file_name
+        result_file = result_dir / file_name
         f = open(result_file, "w+")
         f.write(processed_score)
         f.close()
