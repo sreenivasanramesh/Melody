@@ -3,6 +3,7 @@ import pickle
 from music21 import converter, instrument, note, chord, stream
 from utils import get_paths
 import random
+import shutil
 
 
 def convert_notes_to_midi(prediction_output, filename):
@@ -106,7 +107,11 @@ def main():
     # we don't know what to do when we get unseen data, how to encode?
     notes = set()
 
-    # TODO: delete directory and create directory structure before generating files
+    # delete old test-train data and before generating new test-train data
+    shutil.rmtree(paths["train_dir"], ignore_errors=True)
+    shutil.rmtree(paths["test_dir"], ignore_errors=True)
+    Path(paths["metadata_dir"]).mkdir(parents=True, exist_ok=True)
+    Path(paths["test_dir"]).mkdir(parents=True, exist_ok=True)
 
     # create train directory
     print("Generating processed train data:\n")
